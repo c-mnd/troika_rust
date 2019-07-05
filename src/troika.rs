@@ -15,6 +15,8 @@ use std::fmt;
 /// troika.absorb(&input);
 /// troika.squeeze(&mut out);
 /// ```
+
+
 #[derive(Clone, Copy)]
 pub struct Troika {
     num_rounds: usize,

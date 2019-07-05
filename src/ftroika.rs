@@ -57,52 +57,44 @@ impl fmt::Debug for T27 {
     }
 }
 
+impl Default for T27 {
+    fn default() -> T27 {
+        T27 {
+            p: 0,
+            n: 0,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[allow(non_snake_case)]
 impl T27 {
     fn new(p: u32, n: u32) -> T27 {
         T27{p: p, n: n}
     }
-    //#[inline]
-    fn clean(&self) -> T27 {
-        T27::new(self.p & 0x07ffffffu32, self.n & 0x07ffffffu32)
-    }
-    //#[inline]
+    const fn ZERO() -> T27 { T27{p: 0, n: 0} }
+    const fn ONE() -> T27 { T27{p: !0, n: 0} }
+    const fn TWO() -> T27 { T27{p: 0, n: !0} }
+    fn clean(&self) -> T27 { T27 {p: self.p & 0x07ffffffu32, n: self.n & 0x07ffffffu32} }
     fn add(&self, other: &T27) -> T27 {
         let self_zero: u32 = !self.p & !self.n;
         let p = !(self.n ^ other.n) & !(self_zero ^ other.p);
         let n = !(self.p ^ other.p) & !(self_zero ^ other.n);
         T27::new(p, n)
     }
-    //#[inline]
     fn mul(&self, other: &T27) -> T27 {
         let p = (self.p & other.p) | (self.n & other.n);
         let n = (self.p & other.n) | (self.n & other.p);
         T27::new(p, n)
     }
-    //#[inline]
-    fn zero() -> T27 {
-        T27::new(0, 0)
-    }
-    //#[inline]
-    fn one() -> T27 {
-        T27::new(0x07ffffffu32, 0)
-    }
-    //#[inline]
-    fn minus() -> T27 {
-        T27::new(0,0x07ffffffu32)
-    }
-    //#[inline]
     fn dec(&self) -> T27 {
-        T27::minus().add(&self)
+        Self::TWO().add(&self)
     }
-    //#[inline]
     fn inc(&self) -> T27 {
-        T27::one().add(&self)
+        T27::ONE().add(&self)
     }
-    //#[inline]
     fn set(&mut self, pos: usize, value: Trit){
         let mask : u32 = 1u32 << pos;
-        //self.p &= !mask;
-        //self.n &= !mask;
         match value {
             1 => self.p |= mask,
             2 => self.n |= mask,
@@ -112,8 +104,6 @@ impl T27 {
     //#[inline]
     pub fn get(&mut self, pos: usize) -> Trit{
         let mask : u32 = 1u32 << pos;
-        let pm = self.p & mask;
-        let pn = self.n & mask;
         if self.p & mask != 0 {
             return 1;
         } else if self.n & mask != 0 {
@@ -145,7 +135,7 @@ impl Default for Ftroika {
             idx: 0,
             rowcol: 0,
             slice: 0,
-            state: [T27::zero(); SLICESIZE],
+            state: [T27::ZERO(); SLICESIZE],
         }
     }
 }
@@ -161,6 +151,8 @@ impl fmt::Debug for Ftroika {
     }
 }
 
+#[allow(dead_code)]
+#[allow(non_snake_case)]
 impl Ftroika {
     //#[inline]
     pub fn new(num_rounds: usize) -> Result<Ftroika> {
@@ -175,7 +167,7 @@ impl Ftroika {
 
     //#[inline]
     pub fn reset(&mut self) {
-        self.state = [T27::zero(); SLICESIZE];
+        self.state = [T27::ZERO(); SLICESIZE];
         self.reset_counters();
     }
     //#[inline]
@@ -203,7 +195,7 @@ impl Ftroika {
 
     pub fn absorb(&mut self, trits: &[Trit]) {
         let mut length = trits.len();
-        let mut space = 0;
+        let mut space: usize;
         let mut trit_idx = 0;
         while length > 0 {
             if self.idx == 0 {
@@ -243,7 +235,7 @@ impl Ftroika {
 
     pub fn squeeze(&mut self, trits: &mut [Trit]) {
         let mut length = trits.len();
-        let mut space = 0;
+        let mut space:usize;
         let mut trit_idx = 0;
         while length > 0 {
             space = TROIKA_RATE - self.idx;
@@ -299,28 +291,28 @@ impl Ftroika {
     }
     //#[inline]
     fn shift_rows(&mut self) {
-        const shifts: [u8;27] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17, 9, 10, 11, 24, 25, 26, 18, 19, 20, 21, 22, 23];
-        let mut new_state = [T27::zero(); SLICESIZE];
+        const SHIFTS: [u8;27] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17, 9, 10, 11, 24, 25, 26, 18, 19, 20, 21, 22, 23];
+        let mut new_state = [T27::ZERO(); SLICESIZE];
         for i in 0..SLICESIZE {
-            new_state[shifts[i] as usize] = self.state[i];
+            new_state[SHIFTS[i] as usize] = self.state[i];
         }
         self.state = new_state;
     }
     //#[inline]
     fn shift_lanes(&mut self) {
-        const shifts: [u8;27] = [19, 13, 21, 10, 24, 15, 2, 9, 3, 14, 0, 6, 5, 1, 25, 22, 23, 20, 7, 17, 26, 12, 8, 18, 16, 11, 4];
-        let mut new_state = [T27::zero(); SLICESIZE];
+        const SHIFTS: [u8;27] = [19, 13, 21, 10, 24, 15, 2, 9, 3, 14, 0, 6, 5, 1, 25, 22, 23, 20, 7, 17, 26, 12, 8, 18, 16, 11, 4];
+        let mut new_state = [T27::ZERO(); SLICESIZE];
         for i in 0..SLICESIZE {
-            new_state[i as usize] = self.state[i].roll(shifts[i] as usize);
+            new_state[i as usize] = self.state[i].roll(SHIFTS[i] as usize);
         }
         self.state = new_state;
     }
 
     //#[inline]
     fn add_column_parity(&mut self) {
-        let mut parity = [T27::zero(); COLUMNS];
+        let mut parity = [T27::ZERO(); COLUMNS];
         for col in 0..COLUMNS {
-            let mut col_sum = T27::zero();
+            let mut col_sum = T27::ZERO();
             for row in 0..ROWS {
                 col_sum = col_sum.add(&self.state[COLUMNS * row + col]);
             }
@@ -337,11 +329,9 @@ impl Ftroika {
         }
     }
 
-    //#[inline]
     fn add_round_constant(&mut self, round: usize) {
         for col in 0..COLUMNS {
             let round_const = T27::new(FROUND_CONSTANTS[round][col][0],FROUND_CONSTANTS[round][col][1]);
-            //let bla = self.state[col];
             self.state[col] = self.state[col].add(&round_const);
         }
     }
